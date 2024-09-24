@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import omni.isaac.lab.utils.math as math_utils
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
-from omni.isaac.lab.sensors import Camera, RayCaster, RayCasterCamera, TiledCamera
+from omni.isaac.lab.sensors import Camera, RayCaster, RayCasterCamera, TiledCamera, save_images_to_file
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedEnv, ManagerBasedRLEnv
@@ -188,6 +188,7 @@ def grab_images(
     data_type: str = "rgb",
     convert_perspective_to_orthogonal: bool = True,
     normalize: bool = True,
+    debug_image_dump: bool = True,
 ) -> torch.Tensor:
     """Grab all of the images of a specific datatype produced by a specific camera at the last timestep.
 
@@ -210,10 +211,16 @@ def grab_images(
     if normalize:
         if data_type == "rgb":
             images = images / 255
-            mean_tensor = torch.mean(images, dim=(1, 2), keepdim=True)
-            images -= mean_tensor
+            # mean_tensor = torch.mean(images, dim=(1, 2), keepdim=True)
+            # images -= mean_tensor
         elif "distance_to" in data_type or "depth" in data_type:
             images[images == float("inf")] = 0
+
+    if debug_image_dump:
+        if not hasattr(grab_images, "counter"):
+            grab_images.counter = 0
+        save_images_to_file(images, f"output_{grab_images.counter}.png")
+        grab_images.counter += 1
     return images.clone()
 
 
