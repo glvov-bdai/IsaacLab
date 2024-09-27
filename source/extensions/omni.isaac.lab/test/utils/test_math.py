@@ -377,6 +377,9 @@ class TestMathUtilities(unittest.TestCase):
             )
 
     def test_depth_perspective_conversion(self):
+        """
+        Tests converting perspective depth images to orthogonal depth images using the intrinsic matrix.
+        """
         # Create a sample perspective depth image (N, H, W)
         perspective_depth = torch.tensor([[[10.0, 0.0, 100.0], [0.0, 3000.0, 0.0], [100.0, 0.0, 100.0]]])
 

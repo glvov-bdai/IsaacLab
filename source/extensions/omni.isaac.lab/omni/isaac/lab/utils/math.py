@@ -988,8 +988,10 @@ Projection operations.
 
 @torch.jit.script
 def unproject_depth(depth: torch.Tensor, intrinsics: torch.Tensor) -> torch.Tensor:
-    r"""Unproject depth image into a pointcloud. This method assumes that depth
-    is provided orthogonally relative to the image plane, as opposed to absolutely relative to the camera's
+    r"""Unproject depth image into a pointcloud. 
+    
+    This method assumes that depth is provided orthogonally relative to the image plane, 
+    as opposed to absolutely relative to the camera's
     principal point (perspective depth). To unproject a perspective depth image, use
     :meth:`convert_perspective_depth_to_orthogonal_depth` to convert
     to an orthogonal depth image prior to calling this method. Otherwise, the
@@ -1068,7 +1070,7 @@ def unproject_depth(depth: torch.Tensor, intrinsics: torch.Tensor) -> torch.Tens
 def convert_perspective_depth_to_orthogonal_depth(
     perspective_depth: torch.Tensor, intrinsics: torch.Tensor
 ) -> torch.Tensor:
-    r"""Provided depth image(s) where depth is provided as the distance to the principal
+    """Provided depth image(s) where depth is provided as the distance to the principal
     point of the camera (perspective depth), this function converts it so that depth
     is provided as the distance to the camera's image plane (orthogonal depth).
 
@@ -1081,12 +1083,12 @@ def convert_perspective_depth_to_orthogonal_depth(
     The function assumes that the width and height are both greater than 1.
 
     Args:
-        perspective_depth: The depth measurement obtained with the distance_to_camera replicator.
+        perspective_depth: The depth image where distance is relative to the camera.
             Shape is (H, W) or or (H, W, 1) or (N, H, W) or (N, H, W, 1).
         intrinsics: A tensor providing camera's calibration matrix. Shape is (3, 3) or (N, 3, 3).
 
     Returns:
-        The depth image as if obtained by the distance_to_image_plane replicator. Shape
+        The depth image where distance is relative to the image plane. Shape
             matches the input shape of depth
 
     Raises:
