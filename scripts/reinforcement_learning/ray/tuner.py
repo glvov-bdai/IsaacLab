@@ -297,13 +297,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_samples",
         type=int,
-        default=100,
+        default=500,
         help="How many hyperparameter runs to try total.",
     )
     parser.add_argument(
         "--repeat_run_count",
         type=int,
-        default=3,
+        default=1,
         help="How many times to repeat each hyperparameter config.",
     )
 

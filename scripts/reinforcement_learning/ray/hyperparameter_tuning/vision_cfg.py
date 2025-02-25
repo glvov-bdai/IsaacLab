@@ -7,14 +7,15 @@ import pathlib
 import sys
 
 # Allow for import of items from the ray workflow.
-UTIL_DIR = pathlib.Path(__file__).parent.parent.parent
-sys.path.append(str(UTIL_DIR))
+CUR_DIR = pathlib.Path(__file__).parent
+UTIL_DIR = CUR_DIR.parent.parent
+sys.path.extend([UTIL_DIR, str(CUR_DIR)])
 import tuner
 import util
 from ray import tune
+from rl_games_cfg import RLGamesJobCfg
 
-
-class CameraJobCfg(tuner.JobCfg):
+class CameraJobCfg(RLGamesJobCfg):
     """In order to be compatible with :meth: invoke_tuning_run, and
     :class:IsaacLabTuneTrainable , configurations should
     be in a similar format to this class. This class can vary env count/horizon length,
@@ -30,33 +31,9 @@ class CameraJobCfg(tuner.JobCfg):
 
     def __init__(self, cfg={}, vary_env_count: bool = False, vary_cnn: bool = False, vary_mlp: bool = False):
         cfg = util.populate_isaac_ray_cfg_args(cfg)
-
-        # Basic configuration
-        cfg["runner_args"]["headless_singleton"] = "--headless"
+        super().__init__(cfg, vary_env_count=vary_env_count, vary_mlp=vary_mlp, max_num_mlp_layers=3,
+                        max_neurons_per_mlp_layer=128)
         cfg["runner_args"]["enable_cameras_singleton"] = "--enable_cameras"
-        cfg["hydra_args"]["agent.params.config.max_epochs"] = 200
-
-        if vary_env_count:  # Vary the env count, and horizon length, and select a compatible mini-batch size
-            # Check from 512 to 8196 envs in powers of 2
-            # check horizon lengths of 8 to 256
-            # More envs should be better, but different batch sizes can improve gradient estimation
-            env_counts = [2**x for x in range(9, 13)]
-            horizon_lengths = [2**x for x in range(3, 8)]
-
-            selected_env_count = tune.choice(env_counts)
-            selected_horizon = tune.choice(horizon_lengths)
-
-            cfg["runner_args"]["--num_envs"] = selected_env_count
-            cfg["hydra_args"]["agent.params.config.horizon_length"] = selected_horizon
-
-            def get_valid_batch_size(config):
-                num_envs = config["runner_args"]["--num_envs"]
-                horizon_length = config["hydra_args"]["agent.params.config.horizon_length"]
-                total_batch = horizon_length * num_envs
-                divisors = self._get_batch_size_divisors(total_batch)
-                return divisors[0]
-
-            cfg["hydra_args"]["agent.params.config.minibatch_size"] = tune.sample_from(get_valid_batch_size)
 
         if vary_cnn:  # Vary the depth, and size of the layers in the CNN part of the agent
             # Also varies kernel size, and stride.
@@ -96,30 +73,6 @@ class CameraJobCfg(tuner.JobCfg):
                 return layers
 
             cfg["hydra_args"]["agent.params.network.cnn.convs"] = tune.sample_from(get_cnn_layers)
-
-        if vary_mlp:  # Vary the MLP structure; neurons (units) per layer, number of layers,
-
-            max_num_layers = 6
-            max_neurons_per_layer = 128
-            if "env.observations.policy.image.params.model_name" in cfg["hydra_args"]:
-                # By decreasing MLP size when using pretrained helps prevent out of memory on L4
-                max_num_layers = 3
-                max_neurons_per_layer = 32
-            if "agent.params.network.cnn.convs" in cfg["hydra_args"]:
-                # decrease MLP size to prevent running out of memory on L4
-                max_num_layers = 2
-                max_neurons_per_layer = 32
-
-            num_layers = tune.randint(1, max_num_layers)
-
-            def get_mlp_layers(_):
-                return [tune.randint(4, max_neurons_per_layer).sample() for _ in range(num_layers.sample())]
-
-            cfg["hydra_args"]["agent.params.network.mlp.units"] = tune.sample_from(get_mlp_layers)
-            cfg["hydra_args"]["agent.params.network.mlp.initializer.name"] = tune.choice(["default"]).sample()
-            cfg["hydra_args"]["agent.params.network.mlp.activation"] = tune.choice(
-                ["relu", "tanh", "sigmoid", "elu"]
-            ).sample()
 
         super().__init__(cfg)
 
